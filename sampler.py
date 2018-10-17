@@ -7,20 +7,30 @@ Created on Wed Oct 17 10:57:55 2018
 """
 
 import sys
+import os
 import numpy as np
 from constraints import Constraint
 
 def main():
     """main file to execute the sampler
     """
+    
+    # read the user's input arguments
     input_file, output_file, n_results = read_input()
     
-    space = get_constraints(input_file)
+    # create a constraints object
+    hyperspace = get_constraints(input_file)
     
-    example = space.get_example()
-    ndims = space.get_ndim
+    # extract the example point and use it to initialize the array of
+    # acceptable points
+    example = hyperspace.get_example()
+    points_init = make_points_array(example, n_results)
     
-    points = make_points_array(example, n_results)
+    # run the sampler
+    points = run_sampler(hyperspace, points_init)
+    
+    # write the output to a file
+    write_output(points, output_file)
     
 
 
@@ -94,6 +104,75 @@ def make_points_array(vec, n):
         Essentially just takes the example vector, vec, and copies it n times
         The output array has size n by len(vec)
     """
+    
+    if n < 1:
+        print("Error: n_results is negative -- 1 output will be produced")
+        n = 1
+    
+    points = np.tile(vec, [n, 1])
+    return points
+
+
+def write_output(array, output_path):
+    """writes a two-dimensional array to an output file given by output_path
+    """
+    
+    # split output_path into a base path and a file name
+    base, fname = os.path.split(output_path)
+    
+    # if the user specified a bsae path but that directory does not exist,
+    # then create that directory
+    if base and not os.path.isdir(base):
+        os.makedirs(base)
+    
+    # if the user did not specify a valid file name (just a directory),
+    # then throw an error
+    if not fname:
+        sys.exit("Error: no output file specified")
+    
+    # save the array to output_path with 4 digits of precision,
+    # spaces between coordinates, and new lines between each vector
+    np.savetxt(output_path, array, fmt='%.4f', delimiter=' ', newline='\n')
+
+
+def run_sampler(hyperspace, points):
+    """
+    """
+    
+    step_size = .05
+    num_steps = 100
+    
+    for i in range(num_steps):
+        points = run_step(points, hyperspace, step_size)
+    
+    return points
+
+
+def run_step(points, hyperspace, step_size):
+    """runs a single step of the Markov chains
+        points is an array of current points in the space
+        hyperspace is the object containing the list of constraints
+        step_size is a float indicating roughly how large the steps are
+    """
+    
+    # number of points and number of dimensions for each point
+    npoints, ndims = points.shape
+    
+    # loop through the points
+    for i in range(npoints):
+        # calculate a step. It is an ndims dimensional Gaussian of mean 0
+        # and standard deviation step_size
+        step = np.random.normal(scale=step_size, size=ndims)
+        # add step to the current position, and then take each coordinate
+        # modulo 1 to remain in the n-dimensional hypercube
+        new_vec = np.mod(points[i] + step, 1)
+        
+        # if this new vector meets all of the constraints, then
+        # modify the points array
+        if hyperspace.apply(new_vec):
+            points[i] = new_vec
+    
+    return points
             
 
 if __name__ == '__main__':
