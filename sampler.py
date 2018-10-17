@@ -11,6 +11,8 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from constraints import Constraint
+import config
+
 
 def main():
     """main file to execute the sampler
@@ -28,7 +30,9 @@ def main():
     points_init = make_points_array(example, n_results)
     
     # run the sampler
-    points = run_sampler(hyperspace, points_init)
+    max_steps = config.MAX_STEPS
+    step_size = config.INIT_STEP_SIZE
+    points = run_sampler(hyperspace, points_init, step_size, max_steps)
     
     plt.plot(points[:,0], points[:,1], marker="o", linestyle="")
     plt.show()
@@ -139,15 +143,52 @@ def write_output(array, output_path):
     np.savetxt(output_path, array, fmt='%.4f', delimiter=' ', newline='\n')
 
 
-def run_sampler(hyperspace, points):
-    """
+def run_sampler(hyperspace, points, step_size, max_steps):
+    """runs Markov Chain Monte Carlo to sample some space
+        hyperspace is an instance of the Constraints class
+        points is an array of acceptable points
+        step_size is a measure of how large the step sizes are
+        max_steps is the maximum number of steps that can be run
     """
     
-    step_size = .05
-    num_steps = 100
+    ndims = hyperspace.get_ndim() # number of dimensions
     
-    for i in range(num_steps):
-        points = run_step(points, hyperspace, step_size)
+    # several arrays for tracking the sampler
+    # pos_mean and pos_std are two-dimensional arrays tracking the average
+    # and standard deviation of position along each coordinate axis
+    pos_mean = np.zeros((max_steps, ndims))
+    pos_std = np.zeros((max_steps, ndims))
+    # accept_rate is a one-dimensional array tracking the acceptance raate
+    # for each step
+    accept_rate = np.zeros(max_steps)
+    
+    # loop for up to the maximum number of steps
+    for i in range(max_steps):
+        # run a single step
+        points, accept_rate[i] = run_step(points, hyperspace, step_size)
+        # calculate the average and std of position after this step
+        pos_mean[i] = calc_pos_mean(points)
+        pos_std[i] = calc_std_mean(points)
+        
+        # decide whether or not it's time to check in on the sampler and
+        # see if it's ready to stop or the step size should be modified
+        if evaluate_sampler(i):
+            # check if the sampler has stabilized
+            if sampler_stable(i, pos_mean, pos_std):
+                # if it has stabilized, break the loop
+                print("Sampler stopped after {0} steps".format(i))
+                break
+            # possibly modify the step size
+            step_size = modify_step_size(step_size, accept_rate)
+        
+    if i == max_steps-1:
+        print("""Warning: reached maximum number of steps. Sampler may not be converged""")
+    
+    plt.plot(range(max_steps), pos_mean[:,0])
+    plt.plot(range(max_steps), pos_mean[:,1])
+    plt.plot(range(max_steps), pos_std[:,0])
+    plt.plot(range(max_steps), pos_std[:,1])
+    plt.show()
     
     return points
 
@@ -157,10 +198,13 @@ def run_step(points, hyperspace, step_size):
         points is an array of current points in the space
         hyperspace is the object containing the list of constraints
         step_size is a float indicating roughly how large the steps are
+        returns both the new array of points and the acceptance rate
     """
     
     # number of points and number of dimensions for each point
     npoints, ndims = points.shape
+    
+    valid_moves = 0 # keeps track of how many valid moves there have been
     
     # loop through the points
     for i in range(npoints):
@@ -171,12 +215,50 @@ def run_step(points, hyperspace, step_size):
         # modulo 1 to remain in the n-dimensional hypercube
         new_vec = np.mod(points[i] + step, 1)
         
-        # if this new vector meets all of the constraints, then
-        # modify the points array
+        # if this new vector meets all of the constraints, then modify the
+        # points array and iterate valid_moves
         if hyperspace.apply(new_vec):
             points[i] = new_vec
+            valid_moves = valid_moves + 1
     
-    return points
+    acceptance_rate = valid_moves/npoints # calculate the acceptance rate
+    
+    return points, acceptance_rate
+
+
+def calc_pos_mean(points):
+    """calculate the average position of a set of vectors stored in the
+        two-dimensional array, points
+    """
+    return np.mean(points, axis=0)
+
+
+def calc_std_mean(points):
+    """calculate the standard deviation of a set of vectors stored in the
+        two-dimensional array, points
+    """
+    return np.std(points, axis=0)
+
+def evaluate_sampler(i):
+    """decides whether or not its time to evaluate the sampler
+        This is done in a simple manner -- every fixed number of steps,
+        given by config.CHECK_STEPS, the sampler is evaluated
+    """
+    check_steps = config.CHECK_STEPS
+    return np.mod(i, check_steps)
+
+
+def sampler_stable(i, pos_mean, pos_std):
+    """decides whether or not the sampler has stabilized
+    """
+    return False
+
+
+def modify_step_size(step_size, accept_rate):
+    """
+    """
+    
+    return step_size
             
 
 if __name__ == '__main__':
