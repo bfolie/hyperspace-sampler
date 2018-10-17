@@ -9,6 +9,7 @@ Created on Wed Oct 17 10:57:55 2018
 import sys
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 from constraints import Constraint
 
 def main():
@@ -28,6 +29,9 @@ def main():
     
     # run the sampler
     points = run_sampler(hyperspace, points_init)
+    
+    plt.plot(points[:,0], points[:,1], marker="o", linestyle="")
+    plt.show()
     
     # write the output to a file
     write_output(points, output_file)
