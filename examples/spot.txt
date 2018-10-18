@@ -1,0 +1,5 @@
+2
+0.5 0.5
+# a single spot in the center of the space, created with two parabolas
+-4*x[0]**2 + 4*x[0] - 0.45 - x[1] >= 0.0
+-4*x[0]**2 + 4*x[0] - 1.45 + x[1] >= 0.0

@@ -1,0 +1,5 @@
+2
+0.2 0.0
+# A bimodal region with a narrow connection between them
+x[0] >= 0.2
+0.25*x[0]**2 - 0.3*x[0] + 0.1 - x[1] >= 0.0

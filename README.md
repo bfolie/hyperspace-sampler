@@ -1,7 +1,7 @@
 Randomly samples a high-dimensional space with a set of constraints.
 
 Function sampler.py is called with the following command:
-./sampler.py <input_file> <output_file> <n_results>
+python3 sampler.py <input_file> <output_file> <n_results>
 
 <input_file> is the path to a file that contains a description of the space
 and constraints.
