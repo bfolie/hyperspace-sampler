@@ -9,13 +9,13 @@ Created on Wed Oct 17 10:57:55 2018
 import sys
 import os
 import numpy as np
-import matplotlib.pyplot as plt
+
 from constraints import Constraint
 import config
 
 
 def main():
-    """main file to execute the sampler
+    """main function to run the sampler
     """
     
     # read the user's input arguments
@@ -177,7 +177,6 @@ def run_sampler(hyperspace, points, step_size, max_steps):
             # not stable
             if sampler_stable(i, pos_mean, pos_std) and not step_mod:
                 # if it has stabilized, break the loop
-                print("Sampler stopped after {0} steps".format(i))
                 break
 
     if i == max_steps-1:
@@ -341,14 +340,12 @@ def modify_step_size(index, step_size, accept_rate):
     # if the recent acceptance rate has been below the minimum acceptance
     # rate, then make the steps smaller
     if recent_accept_rate < min_accept_rate:
-        print("Step size made smaller")
         return step_size*factor, True
 
     # if the recent acceptance rate has been above the maximum acceptance
     # rate, then make the steps bigger (but not bigger than 1)
     if recent_accept_rate > max_accept_rate:
         if step_size/factor < 1:
-            print("Step size made bigger")
             return step_size/factor, True
 
     # otherwise the recent acceptance rate was in an OK range, so step_size
