@@ -134,9 +134,9 @@ def write_output(array, output_path):
     if not fname:
         sys.exit("Error: no output file specified")
 
-    # save the array to output_path with 4 digits of precision,
+    # save the array to output_path with 6 digits of precision,
     # spaces between coordinates, and new lines between each vector
-    np.savetxt(output_path, array, fmt='%.4f', delimiter=' ', newline='\n')
+    np.savetxt(output_path, array, fmt='%.6f', delimiter=' ', newline='\n')
 
 
 def run_sampler(hyperspace, points, step_size, max_steps):
